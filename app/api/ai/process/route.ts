@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 import { prisma } from '@/lib/db'
-import { openai } from '@/lib/openai'
+import { getOpenAI } from '@/lib/openai'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
@@ -13,8 +13,11 @@ export async function POST(req: Request) {
     where: { id },
   })
 
-  if (!note)
+  if (!note) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  const openai = getOpenAI()
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -23,7 +26,7 @@ export async function POST(req: Request) {
     ],
   })
 
-  const summary = completion.choices[0].message.content
+  const summary = completion.choices[0].message.content ?? ""
 
   await prisma.knowledgeItem.update({
     where: { id },
