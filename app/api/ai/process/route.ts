@@ -1,6 +1,6 @@
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
-import { prisma } from '@/lib/db'
-import { openai } from '@/lib/openai'
 import { NextResponse } from 'next/server'
 export async function POST(req:Request){
   const {id}=await req.json()
