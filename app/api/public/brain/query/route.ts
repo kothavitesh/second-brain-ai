@@ -1,25 +1,38 @@
 export const dynamic = "force-dynamic"
 
-import { prisma } from '@/lib/db'
-import { openai } from '@/lib/openai'
 import { NextResponse } from 'next/server'
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const q = searchParams.get('q') || ''
 
-  const notes = await prisma.knowledgeItem.findMany({ take: 5 })
+export async function POST(req: Request) {
+  try {
+    const { id } = await req.json()
 
-  const context = notes.map((n: any) => n.content).join("\n")
+    const { prisma } = await import('@/lib/db')
+    const { openai } = await import('@/lib/openai')
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "user", content: `Context:\n${context}\nQuestion:${q}` }
-    ]
-  })
+    const note = await prisma.knowledgeItem.findUnique({
+      where: { id },
+    })
 
-  return NextResponse.json({
-    answer: completion.choices[0].message.content,
-    sources: notes.map((n: any) => n.title)
-  })
+    if (!note) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "user", content: `Summarize and generate tags:\n${note.content}` }
+      ],
+    })
+
+    const summary = completion.choices[0].message.content
+
+    await prisma.knowledgeItem.update({
+      where: { id },
+      data: { summary },
+    })
+
+    return NextResponse.json({ summary })
+  } catch (error) {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 })
+  }
 }
