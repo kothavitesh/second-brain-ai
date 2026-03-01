@@ -1,7 +1,8 @@
+export const dynamic = "force-dynamic"
+
 import { prisma } from '@/lib/db'
 import { openai } from '@/lib/openai'
 import { NextResponse } from 'next/server'
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q') || ''
